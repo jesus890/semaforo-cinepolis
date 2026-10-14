@@ -1,0 +1,52 @@
+export interface HeatmapCell {
+    day: string;
+    total: number;
+}
+
+export interface HeatmapValue {
+    day: string;
+    total: number;
+    estatus: string;
+    estadoId: number;
+    municipioId: number;
+}
+
+export interface HeatmapRow {
+    id: string;
+    estadoId: number;
+    name: string;
+    values: HeatmapValue[];
+}
+
+export interface MunicipioData {
+    estadoId: string;
+    municipios: HeatmapRow[];
+}
+
+export type DashboardLevel =
+    | "estado"
+    | "municipio";
+
+export interface DashboardState {
+    level: DashboardLevel;
+    selectedState: HeatmapRow | null;
+}
+
+export interface CumplimientoEstado {
+    estado: string;
+    porEstatus: number;
+    porEstado: number;
+    totalRegistros: number;
+    totalDesaparecidos: number;
+    totalLocalizados: number;
+    totalFichasEnviadas: number;
+    totalConAlerta: number;
+    totalAlertaLoc: number;
+    totalAlertaDes: number;
+    totalSinAlerta: number;
+    totalSinAlertaLoc: number;
+    totalSinAlertaDes: number;
+    totalArt108: number;
+    totalFaltaDato: number;
+    cumplimiento: number;
+}

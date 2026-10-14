@@ -1,0 +1,220 @@
+import { useMemo } from "react";
+
+import type { AutoridadRow } from "../../../types/dashboard.types";
+
+interface Props {
+    rows: AutoridadRow[];
+    onAutoridadClick?: (autoridad: string) => void;
+}
+
+export default function AutoridadesTable({ rows, onAutoridadClick }: Props) {
+
+
+    const totals = useMemo(() => rows.reduce((acc, r) => ({
+        registros: acc.registros + r.registros,
+        art108: acc.art108 + r.art108,
+        suceptibles: acc.suceptibles + r.suceptibles,
+        conAlerta: acc.conAlerta + r.conAlerta,
+        sinAlerta: acc.sinAlerta + r.sinAlerta,
+        localizadoSinAlerta: acc.localizadoSinAlerta + r.localizadoSinAlerta,
+        sinAlertaFaltanDatos: acc.sinAlertaFaltanDatos + r.sinAlertaFaltanDatos,
+    }), {
+        registros: 0, art108: 0, suceptibles: 0, conAlerta: 0,
+        sinAlerta: 0, localizadoSinAlerta: 0, sinAlertaFaltanDatos: 0,
+    }), [rows]);
+
+    // Alertas vs Registros = (conAlerta / registros) * 100
+    const calcAlertas = (conAlerta: number, registros: number) =>
+        registros > 0 ? ((conAlerta / registros) * 100).toFixed(1) + "%" : "—";
+
+    const getAlertasColor = (conAlerta: number, registros: number) => {
+        if (!registros) return "";
+        const pct = (conAlerta / registros) * 100;
+        if (pct >= 70) return "text-emerald-700 font-semibold";
+        if (pct >= 40) return "text-amber-700 font-semibold";
+        return "text-red-700 font-semibold";
+    };
+
+    const thBase = "px-1 py-2 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs font-semibold tracking-tight";
+    const tdBase = "py-1.5 px-1 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs tabular-nums";
+
+
+    if (!rows.length) {
+        return (
+            <div className="flex h-40 items-center justify-center rounded-2xl border border-slate-200 bg-white">
+                <span className="text-sm text-slate-500">No hay información disponible</span>
+            </div>
+        );
+    }
+
+    const sortedRows = useMemo(() => {
+        return [...rows].sort(
+            (a, b) => a.alertasvsRegistros - b.alertasvsRegistros
+        );
+    }, [rows]);
+
+    const getCumplimientoBg = (value: number) => {
+        if (value >= 70) return "bg-emerald-500";
+        if (value >= 40) return "bg-amber-500";
+        return "bg-red-500";
+    };
+
+    return (
+        <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+            <table className="w-full border-collapse table-fixed min-w-[680px]">
+
+                <colgroup>
+                    {/* Autoridad — más ancha */}
+                    <col style={{ width: "18%" }} />
+                    {/* Registros, Art108, Suceptibles, Con Alerta, Sin Alerta */}
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <col key={i} style={{ width: "7%" }} />
+                    ))}
+                    {/* Sin Alerta (Localizados) — amarillo */}
+                    <col style={{ width: "9%" }} />
+                    {/* Sin Alerta (Faltan Datos) — amarillo */}
+                    <col style={{ width: "9%" }} />
+                    {/* Alertas vs Registros */}
+                    <col style={{ width: "9%" }} />
+
+                    <col style={{ width: "10%" }} />
+                </colgroup>
+
+                <thead>
+                    <tr className="bg-[#611232] text-white">
+
+                        <th className="sticky left-0 z-20 bg-[#611232] px-3 py-2 text-left text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs font-semibold">
+                            Autoridad
+                        </th>
+
+                        {["Registros", "Art. 108", "Suceptibles", "Con Alerta", "Sin Alerta"].map(label => (
+                            <th key={label} className={thBase}>{label}</th>
+                        ))}
+
+                        {/* Sin Alerta (Localizados) — encabezado amarillo */}
+                        <th className="px-1 py-2 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs font-semibold tracking-tight bg-amber-400 text-amber-900">
+                            Sin Alerta
+                            <br />
+                            <span className="font-normal">(Localizados)</span>
+                        </th>
+
+                        {/* Sin Alerta (Faltan Datos) — encabezado amarillo */}
+                        <th className="px-1 py-2 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs font-semibold tracking-tight bg-amber-400 text-amber-900">
+                            Sin Alerta
+                            <br />
+                            <span className="font-normal">(Faltan Datos)</span>
+                        </th>
+
+                        <th className={thBase}>
+                            Alertas vs
+                            <br />
+                            <span className="font-normal">Registros</span>
+                        </th>
+
+                        <th className={thBase}>
+                            Cumplimiento
+                        </th>
+
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {
+                        sortedRows.map((row, index) => (
+                            <tr
+                                key={row.numero}
+                                className={`
+                                    border-b border-slate-100 transition-colors hover:bg-slate-100
+                                    ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}
+                                `}
+                            >
+                                {/* Nombre autoridad */}
+                                <td
+                                    className={`
+                                        sticky left-0 px-3 py-1.5
+                                        ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}
+                                    `}
+                                >
+                                    <button
+                                        onClick={() => onAutoridadClick?.(row.autoridad)}
+                                        className="group flex items-center gap-1.5 cursor-pointer w-full"
+                                    >
+                                        <div className="h-2 w-2 shrink-0 rounded-full bg-[#611232]" />
+                                        <span className="
+                                            truncate
+                                            text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs
+                                            font-semibold text-slate-700 group-hover:text-[#611232]
+                                            transition-colors
+                                        ">
+                                            {row.abreviatura}
+                                        </span>
+                                    </button>
+                                </td>
+
+                                <td className={tdBase}>{row.registros}</td>
+                                <td className={tdBase}>{row.art108}</td>
+                                <td className={tdBase}>{row.suceptibles}</td>
+                                <td className={tdBase}>{row.conAlerta}</td>
+                                <td className={tdBase}>{row.sinAlerta}</td>
+
+                                {/* Sin Alerta Localizados — fondo amarillo suave */}
+                                <td className={`${tdBase} bg-amber-50 text-amber-800`}>
+                                    {row.localizadoSinAlerta}
+                                </td>
+
+                                {/* Sin Alerta Faltan Datos — fondo amarillo suave */}
+                                <td className={`${tdBase} bg-amber-50 text-amber-800`}>
+                                    {row.sinAlertaFaltanDatos}
+                                </td>
+
+                                {/* Alertas vs Registros — calculado */}
+                                <td className={`${tdBase} ${getAlertasColor(row.conAlerta, row.registros)}`}>
+                                    {calcAlertas(row.conAlerta, row.registros)}
+                                </td>
+
+                            </tr>
+                        ))
+                    }
+                </tbody>
+
+                <tfoot>
+                    <tr className="bg-slate-900 text-white font-bold">
+
+                        <td className="px-3 py-2 text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs font-bold tracking-wider sticky left-0 bg-slate-900">
+                            TOTAL
+                        </td>
+
+                        {[
+                            totals.registros,
+                            totals.art108,
+                            totals.suceptibles,
+                            totals.conAlerta,
+                            totals.sinAlerta,
+                        ].map((val, i) => (
+                            <td key={i} className="py-2 px-1 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs">
+                                {val}
+                            </td>
+                        ))}
+
+                        {/* Totales amarillos */}
+                        <td className="py-2 px-1 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs bg-amber-500 text-amber-950 font-bold">
+                            {totals.localizadoSinAlerta}
+                        </td>
+                        <td className="py-2 px-1 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs bg-amber-500 text-amber-950 font-bold">
+                            {totals.sinAlertaFaltanDatos}
+                        </td>
+
+                        {/* Alertas vs Registros total */}
+                        <td className="py-2 px-1 text-center text-[9px] sm:text-[10px] md:text-[11px] lg:text-xs font-bold">
+                            {calcAlertas(totals.conAlerta, totals.registros)}
+                        </td>
+
+                    </tr>
+                </tfoot>
+
+            </table>
+
+        </div>
+    );
+}
